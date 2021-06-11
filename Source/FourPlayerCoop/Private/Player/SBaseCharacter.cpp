@@ -3,6 +3,8 @@
 
 #include "Player/SBaseCharacter.h"
 #include "Components/SCharacterMovementComponent.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -12,6 +14,11 @@ ASBaseCharacter::ASBaseCharacter(const class FObjectInitializer& ObjectInitializ
 {
 	SprintSpeedModifier = 2.5f;
 	TargetingSpeedModifier = 0.5f;
+
+	/* Don't collide with camera checks to keep 3rd Person Camera at position when bots or other players are standing behind us */
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+
 }
 
 

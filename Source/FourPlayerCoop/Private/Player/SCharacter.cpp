@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Items/SUsableActor.h"
 
 
 ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -27,6 +28,8 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(CameraBoomComp);
+
+	MaxUseDistance = 500.0f;
 }
 
 
@@ -39,6 +42,41 @@ void ASCharacter::BeginPlay()
 void ASCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bWantsToRun && !IsSprinting())
+	{
+		SetSprinting(true);
+	}
+
+	if (Controller && Controller->IsLocalController())
+	{
+		ASUsableActor* Usable = GetUsableInView();
+
+		/* End Focus */
+		if (FocusedUsableActor != Usable)
+		{
+			bHasNewFocus = true;
+
+			if (FocusedUsableActor)
+			{
+				FocusedUsableActor->OnEndFocus();
+			}
+		}
+
+		/* Set New Focus Item */
+		FocusedUsableActor = Usable;
+
+		// Start Focus 
+		if (Usable)
+		{
+			if (bHasNewFocus)
+			{
+				Usable->OnBeginFocus();
+				bHasNewFocus = false;
+			}
+		}
+
+	}
 }
 
 
@@ -60,6 +98,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &ASCharacter::OnStartTargeting);
 	PlayerInputComponent->BindAction("Targeting", IE_Released, this, &ASCharacter::OnStopTargeting);
+
+	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
 }
 
 
@@ -107,25 +147,30 @@ void ASCharacter::OnJump()
 	SetIsJumping(true);
 }
 
+
 void ASCharacter::OnStartSprinting()
 {
 	SetSprinting(true);
 }
+
 
 void ASCharacter::OnStopSprinting()
 {
 	SetSprinting(false);
 }
 
+
 void ASCharacter::SetSprinting(bool NewSprinting)
 {
 	Super::SetSprinting(NewSprinting);
 }
 
+
 bool ASCharacter::IsInitiatedJump() const
 {
 	return bIsJumping;
 }
+
 
 void ASCharacter::SetIsJumping(bool NewJumping)
 {
@@ -149,15 +194,18 @@ void ASCharacter::SetIsJumping(bool NewJumping)
 	}
 }
 
+
 void ASCharacter::ServerSetIsJumping_Implementation(bool NewJumping)
 {
 	SetIsJumping(NewJumping);
 }
 
+
 bool ASCharacter::ServerSetIsJumping_Validate(bool NewJumping)
 {
 	return true;
 }
+
 
 void ASCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
@@ -177,9 +225,63 @@ void ASCharacter::OnStartTargeting()
 	SetTargeting(true);
 }
 
+
 void ASCharacter::OnStopTargeting()
 {
 	SetTargeting(false);
+}
+
+
+void ASCharacter::Use()
+{
+	if (HasAuthority())
+	{
+		ASUsableActor* Usable = GetUsableInView();
+		if (Usable)
+		{
+			Usable->OnUsed(this);
+		}
+	}
+	else
+	{
+		ServerUse();
+	}
+}
+
+void ASCharacter::ServerUse_Implementation()
+{
+	Use();
+}
+
+
+bool ASCharacter::ServerUse_Validate()
+{
+	return true;
+}
+
+
+ASUsableActor* ASCharacter::GetUsableInView() const
+{
+	FVector CamLoc;
+	FRotator CamRot;
+
+	if (Controller == nullptr)
+		return nullptr;
+
+	Controller->GetPlayerViewPoint(CamLoc, CamRot);
+	const FVector TraceStart = CamLoc;
+	const FVector Direction = CamRot.Vector();
+	const FVector TraceEnd = TraceStart + (Direction * MaxUseDistance);
+
+	FCollisionQueryParams QueryParams(TEXT("TraceParams"), true, this);
+	QueryParams.bReturnPhysicalMaterial = true;
+	QueryParams.bTraceComplex = true;
+
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+
+	// return focused actor 
+	return (Cast<ASUsableActor>(Hit.GetActor()));
 }
 
 

@@ -8,6 +8,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class ASUsableActor;
 
 UCLASS()
 class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
@@ -36,6 +37,11 @@ private:
 	UCameraComponent* CameraComp;
 
 public:
+
+	FORCEINLINE UCameraComponent* GetCameraComponent()
+	{
+		return CameraComp;
+	}
 
 	/***********************************************************************/
 	/* Movement															   */
@@ -84,4 +90,31 @@ public:
 	void OnStartTargeting();
 
 	void OnStopTargeting();
+
+
+	/*************************************************************************/
+	/* Object Interaction													 */
+	/*************************************************************************/
+
+	/* Mapped to input */
+	void Use();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerUse();
+
+	void ServerUse_Implementation();
+
+	bool ServerUse_Validate();
+
+	/* Max distance that the player can focus from */
+	UPROPERTY(EditDefaultsOnly, Category = "ObjectInteraction")
+	float MaxUseDistance;
+
+	/* Perform RayTrace to find the closest usable actor */
+	ASUsableActor* GetUsableInView() const;
+
+	ASUsableActor* FocusedUsableActor;
+
+	/* True only in the first frame when focused on a new actor */
+	bool bHasNewFocus;
 };
