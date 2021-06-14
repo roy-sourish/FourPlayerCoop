@@ -9,6 +9,8 @@
 class USpringArmComponent;
 class UCameraComponent;
 class ASUsableActor;
+class ASWeapon;
+enum class EInventorySlot : uint8;
 
 UCLASS()
 class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
@@ -117,4 +119,70 @@ public:
 
 	/* True only in the first frame when focused on a new actor */
 	bool bHasNewFocus;
+
+
+	/*******************************************************************/
+	/* Weapon and Inventory											   */
+	/*******************************************************************/
+
+private:
+
+	// Weapon Attach Points -
+
+	/* Attach point for Active weapon/item in hands */
+	UPROPERTY(EditDefaultsOnly, Category = "Sockets")
+	FName WeaponAttachPoint;
+
+	/* Attach point for Secondary Weapon */
+	UPROPERTY(EditDefaultsOnly, Category = "Sockets")
+	FName SecondaryAttachPoint;
+
+	/* Attach point for primary weapons */
+	UPROPERTY(EditDefaultsOnly, Category = "Sockets")
+	FName SpineAttachPoint;
+
+	/* Mapped to input */
+	void OnEquipPrimaryWeapon();
+
+	/* Mapped to input */
+	void OnEquipSecondaryWeapon();
+
+
+public:
+
+	/* All Weapons and items the player currently holds */
+	/* NOTE: GameMode will populate this Inventory array and spawn default weapons of the player on spawn */
+	UPROPERTY(Transient, Replicated)
+	TArray<ASWeapon*> Inventory;
+
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_CurrentWeapon)
+	ASWeapon* CurrentWeapon;
+
+	ASWeapon* PreviousWeapon;
+
+	void SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* LastWeapon = nullptr);
+
+	void EquipWeapon(ASWeapon* Weapon);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerEquipWeapon(ASWeapon* Weapon);
+
+	void ServerEquipWeapon_Implementation(ASWeapon* Weapon);
+	
+	bool ServerEquipWeapon_Validate(ASWeapon* Weapon);
+
+	UFUNCTION()
+	void OnRep_CurrentWeapon(ASWeapon* LastWeapon);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	ASWeapon* GetCurrentWeapon() const;
+
+	/* Return socket name for weapon attachment */
+	FName GetInventoryAttachPoints(EInventorySlot Slot) const;
+
+	/* Adds weapon to inventory */
+	void AddWeapon(ASWeapon* Weapon);
+
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void SwapToNewWeaponMesh();
 };

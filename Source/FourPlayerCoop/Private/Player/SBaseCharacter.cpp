@@ -18,7 +18,6 @@ ASBaseCharacter::ASBaseCharacter(const class FObjectInitializer& ObjectInitializ
 	/* Don't collide with camera checks to keep 3rd Person Camera at position when bots or other players are standing behind us */
 	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-
 }
 
 

@@ -7,6 +7,8 @@
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Items/SUsableActor.h"
+#include "Items/SWeapon.h"
+#include "FourPlayerCoop/STypes.h"
 
 
 ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -30,6 +32,11 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 	CameraComp->SetupAttachment(CameraBoomComp);
 
 	MaxUseDistance = 500.0f;
+
+	// Weapon Sockets 
+	WeaponAttachPoint = TEXT("WeaponSocket");
+	SecondaryAttachPoint = TEXT("SecondarySocket");
+	SpineAttachPoint = TEXT("SpineSocket");
 }
 
 
@@ -100,6 +107,9 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Targeting", IE_Released, this, &ASCharacter::OnStopTargeting);
 
 	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
+
+	PlayerInputComponent->BindAction("PrimaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipPrimaryWeapon);
+	PlayerInputComponent->BindAction("SecondaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipSecondaryWeapon);
 }
 
 
@@ -248,6 +258,7 @@ void ASCharacter::Use()
 	}
 }
 
+
 void ASCharacter::ServerUse_Implementation()
 {
 	Use();
@@ -285,9 +296,189 @@ ASUsableActor* ASCharacter::GetUsableInView() const
 }
 
 
+void ASCharacter::OnEquipPrimaryWeapon()
+{
+	if (Inventory.Num() >= 1)
+	{
+		/* Find first weapon that uses primary slot and equip it */
+		for (int32 i = 0; i < Inventory.Num(); i++)
+		{
+			ASWeapon* Weapon = Inventory[i];
+			if (Weapon && Weapon->GetStorageSlot() == EInventorySlot::Primary)
+			{
+				EquipWeapon(Weapon);
+			}
+		}
+	}
+}
+
+
+void ASCharacter::OnEquipSecondaryWeapon()
+{
+	if (Inventory.Num() >= 2)
+	{
+		/* Find second weapon that uses secondary slot */
+		for (int i = 0; i < Inventory.Num(); i++)
+		{
+			ASWeapon* Weapon = Inventory[i];
+			if (Weapon && Weapon->GetStorageSlot() == EInventorySlot::Secondary)
+			{
+				EquipWeapon(Weapon);
+			}
+		}
+	}
+}
+
+
+void ASCharacter::EquipWeapon(ASWeapon* Weapon)
+{
+	if (Weapon)
+	{
+		/* Ignore if trying to equip already equipped weapon */	
+		if (Weapon == CurrentWeapon)
+		{
+			return;
+		}
+
+		/* Push to server if client */
+		if (HasAuthority())
+		{
+			// Current weapon will be the prev. weapon when switching to new weapon
+			SetCurrentWeapon(Weapon, CurrentWeapon);
+		}
+		else
+		{
+			ServerEquipWeapon(Weapon);
+		}
+	}
+}
+
+
+void ASCharacter::ServerEquipWeapon_Implementation(ASWeapon* Weapon)
+{
+	EquipWeapon(Weapon);
+}
+
+
+bool ASCharacter::ServerEquipWeapon_Validate(ASWeapon* Weapon)
+{
+	return true;
+}
+
+
+void ASCharacter::OnRep_CurrentWeapon(ASWeapon* LastWeapon)
+{
+	SetCurrentWeapon(CurrentWeapon, LastWeapon);
+}
+
+
+ASWeapon* ASCharacter::GetCurrentWeapon() const
+{
+	return CurrentWeapon;
+}
+
+
+FName ASCharacter::GetInventoryAttachPoints(EInventorySlot Slot) const
+{
+	switch (Slot)
+	{
+	case EInventorySlot::Hands:
+		return WeaponAttachPoint;
+	case EInventorySlot::Primary:
+		return SpineAttachPoint;
+	case EInventorySlot::Secondary:
+		return SecondaryAttachPoint;
+	default:
+		return "";
+	}
+}
+
+
+void ASCharacter::AddWeapon(ASWeapon* Weapon)
+{
+	if (Weapon && HasAuthority())
+	{
+		// Set Owning Pawn and Attach the weapons to player mesh 
+		Weapon->OnEnterInventory(this);
+
+		// Add default weapons to inventory
+		Inventory.AddUnique(Weapon);
+
+		// Equip first weapon in inventory 
+		if (Inventory.Num() > 0 && CurrentWeapon == nullptr)
+		{
+			EquipWeapon(Inventory[0]);
+		}
+	}
+}
+
+
+void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* LastWeapon)
+{
+
+	/* Maintain visual reference to previous weapon - used in SwapToNewWeaponMesh*/	
+	PreviousWeapon = LastWeapon;
+
+	ASWeapon* LocalLastWeapon = nullptr;
+	if (LastWeapon)		// LastWeapon = Current weapon that the player is holding 
+	{
+		LocalLastWeapon = LastWeapon;
+		UE_LOG(LogTemp, Error, TEXT("if(LastWeapon)"));
+	}
+	else if (NewWeapon != CurrentWeapon)
+	{
+		// When Player Hands is empty the val of Current Weapon is nullptr, and LocalLastWepon is set to nullptr.
+	
+		LocalLastWeapon = CurrentWeapon;	
+		UE_LOG(LogTemp, Error, TEXT("if(NewWeapon != CurrentWeapon)"));
+	}
+
+	// UnEquip the current weapon 
+	bool bHasPreviousWeapon = false;
+	if (LocalLastWeapon)
+	{
+		LocalLastWeapon->OnUnEquip();
+		bHasPreviousWeapon = true;
+	}
+
+	CurrentWeapon = NewWeapon;
+
+	// Equip New Weapon
+	if (NewWeapon)
+	{
+		// Set Owner 
+		NewWeapon->SetOwningPawn(this);
+
+		// Only play animation when we are holding an item in hand 
+		NewWeapon->OnEquip(bHasPreviousWeapon);
+	}
+
+	/* NOTE: If you don't have an equip animation w/ animnotify to swap the meshes halfway through,
+			 then uncomment this to immediately swap instead */
+	//SwapToNewWeaponMesh();
+}
+
+
+void ASCharacter::SwapToNewWeaponMesh()
+{
+	if (PreviousWeapon)
+	{
+		PreviousWeapon->AttachMeshToPawn(PreviousWeapon->GetStorageSlot());
+	}
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->AttachMeshToPawn(EInventorySlot::Hands);
+	}
+}
+
+
 void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ASCharacter, bIsJumping, COND_SkipOwner);
+
+	DOREPLIFETIME(ASCharacter, CurrentWeapon);
+	DOREPLIFETIME(ASCharacter, Inventory);
 }
