@@ -17,6 +17,8 @@ class FOURPLAYERCOOP_API ASWeapon : public AActor
 	
 private:
 
+	bool bIsEquipped;
+
 	bool bPendingEquip;
 
 	float EquipDuration;
@@ -24,6 +26,7 @@ private:
 	float EquipStartTime;
 
 	FTimerHandle EquipFinishedTimerHandle;
+
 protected:	
 
 	// Sets default values for this actor's properties
@@ -44,6 +47,10 @@ protected:
 	void OnRep_MyPawn();
 
 	virtual void OnEquipFinished();
+
+	bool IsEquipped() const;
+
+	bool IsWeaponAttachedToPawn();
 
 public:
 
@@ -74,6 +81,9 @@ public:
 		return StorageSlot;
 	}
 
+	/* Class to spawn when weapon is dropped */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<class ASWeaponPickup> WeaponPickupClass;
 
 	/******************************************************************/
 	/* Simulation and FX                                              */

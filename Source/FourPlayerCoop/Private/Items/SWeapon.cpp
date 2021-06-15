@@ -25,9 +25,9 @@ ASWeapon::ASWeapon()
 	PrimaryActorTick.bCanEverTick = true;
 
 	SetReplicates(true);
-
 	bNetUseOwnerRelevancy = true;
 
+	bIsEquipped = false;
 	StorageSlot = EInventorySlot::Primary;
 
 	NoEquipAnimDuration = 0.5f;
@@ -79,7 +79,10 @@ void ASWeapon::OnLeaveInventory()
 		SetOwningPawn(nullptr);
 	}
 
-	//
+	if (IsWeaponAttachedToPawn())
+	{
+		OnUnEquip();
+	}
 
 
 	DetachMeshFromPawn();
@@ -113,7 +116,18 @@ void ASWeapon::OnEquipFinished()
 {
 	AttachMeshToPawn();
 
+	bIsEquipped = true;
 	bPendingEquip = false;
+}
+
+bool ASWeapon::IsEquipped() const
+{
+	return bIsEquipped;
+}
+
+bool ASWeapon::IsWeaponAttachedToPawn()
+{
+	return bIsEquipped || bPendingEquip;
 }
 
 
@@ -146,6 +160,8 @@ void ASWeapon::OnEquip(bool bPlayAnimation)
 
 void ASWeapon::OnUnEquip()
 {
+	bIsEquipped = false;
+
 	if (bPendingEquip)
 	{
 		StopWeaponAnimation(EquipAnim);

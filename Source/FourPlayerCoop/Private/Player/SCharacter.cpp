@@ -3,11 +3,13 @@
 
 #include "Player/SCharacter.h"
 #include "Components/SCharacterMovementComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Items/SUsableActor.h"
 #include "Items/SWeapon.h"
+#include "Items/SWeaponPickup.h"
 #include "FourPlayerCoop/STypes.h"
 
 
@@ -32,6 +34,7 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 	CameraComp->SetupAttachment(CameraBoomComp);
 
 	MaxUseDistance = 500.0f;
+	DropWeaponMaxDistance = 100.0f;
 
 	// Weapon Sockets 
 	WeaponAttachPoint = TEXT("WeaponSocket");
@@ -107,6 +110,7 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Targeting", IE_Released, this, &ASCharacter::OnStopTargeting);
 
 	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
+	PlayerInputComponent->BindAction("DropWeapon", IE_Pressed, this, &ASCharacter::DropWeapon);
 
 	PlayerInputComponent->BindAction("PrimaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipPrimaryWeapon);
 	PlayerInputComponent->BindAction("SecondaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipSecondaryWeapon);
@@ -330,6 +334,92 @@ void ASCharacter::OnEquipSecondaryWeapon()
 }
 
 
+void ASCharacter::DropWeapon()
+{
+	// Push to server if client 
+	if (!HasAuthority())
+	{
+		ServerDropWeapon();
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		if (Controller == nullptr)
+		{
+			return;
+		}
+
+		/* Find location to drop the weapon slightly in front of the player.
+		   Perform RayTrace to check for blocking objects and make sure we don't drop the item through the level mesh */
+		
+		FVector CamLoc;
+		FRotator CamRot;
+
+		/* Weapon Pickup Class Spawn location */
+		FVector SpawnLocation;
+
+		Controller->GetPlayerViewPoint(CamLoc, CamRot);
+		
+		const FVector TraceStart = GetActorLocation();
+		const FVector Direction = CamRot.Vector();
+		const FVector TraceEnd = TraceStart + (Direction * DropWeaponMaxDistance);
+
+		FCollisionQueryParams TraceParams;
+		TraceParams.bTraceComplex = false;
+		TraceParams.bReturnPhysicalMaterial = false;
+		TraceParams.AddIgnoredActor(this);
+
+		FHitResult Hit;
+		GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_WorldDynamic, TraceParams);
+
+		/* Find furthest valid spawn location */
+		if (Hit.bBlockingHit)
+		{
+			/* Slightly move away from spawn location */
+			SpawnLocation = Hit.ImpactPoint + (Hit.ImpactNormal * 20);
+		}
+		else
+		{
+			/* if no blocking hit then spawn at trace end location */
+			SpawnLocation = TraceEnd;
+		}
+
+		/* Spawn Weapon Pickup Class */
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		ASWeaponPickup* NewWeaponPickup = GetWorld()->SpawnActor<ASWeaponPickup>(CurrentWeapon->WeaponPickupClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
+		if (NewWeaponPickup)
+		{
+			UStaticMeshComponent* MeshComp = NewWeaponPickup->GetMeshComponent();
+			if (MeshComp)
+			{
+				// Already enabled in editor
+				MeshComp->SetSimulatePhysics(true);
+				MeshComp->AddImpulse(FVector(1, 1, 1) * 10, NAME_None, true);		//
+			}
+		}
+
+		/* Remove Weapon from inventory and destroy */
+		RemoveWeapon(CurrentWeapon, true);
+	}
+}
+
+
+void ASCharacter::ServerDropWeapon_Implementation()
+{
+	DropWeapon();
+}
+
+
+bool ASCharacter::ServerDropWeapon_Validate()
+{
+	return true;
+}
+
+
 void ASCharacter::EquipWeapon(ASWeapon* Weapon)
 {
 	if (Weapon)
@@ -413,6 +503,43 @@ void ASCharacter::AddWeapon(ASWeapon* Weapon)
 }
 
 
+void ASCharacter::RemoveWeapon(ASWeapon* Weapon, bool bDestory)
+{
+	if (Weapon && HasAuthority())
+	{
+		bool bIsCurrentWeapon = CurrentWeapon == Weapon;
+
+		// Detatch weapon mesh from pawn 
+		if (Inventory.Contains(Weapon))
+		{
+			Weapon->OnLeaveInventory();
+		}
+		
+		// Remove from inventory (* maintains array order but not indeces)
+		Inventory.RemoveSingle(Weapon);
+
+		/* Switch to other available weapon if we remove our current one */
+		if (bIsCurrentWeapon && Inventory.Num() > 0)
+		{
+			//EquipWeapon(Inventory[0]);		//
+			SetCurrentWeapon(Inventory[0]);
+		}
+		
+		/* Clear reference to weapon if we have no items let in the inventory */
+		if (Inventory.Num() == 0)
+		{
+			SetCurrentWeapon(nullptr);
+		}
+
+		if (bDestory)
+		{
+			Weapon->Destroy();
+		}
+
+	}
+}
+
+
 void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* LastWeapon)
 {
 
@@ -470,6 +597,23 @@ void ASCharacter::SwapToNewWeaponMesh()
 	{
 		CurrentWeapon->AttachMeshToPawn(EInventorySlot::Hands);
 	}
+}
+
+
+bool ASCharacter::WeaponSlotAvailable(EInventorySlot CheckSlot)
+{
+	/* Itrate over all the weapons to see if the requested slot is available. */
+
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		ASWeapon* Weapon = Inventory[i];
+		if (Weapon && Weapon->GetStorageSlot() == CheckSlot)
+		{
+			return false;
+		}
+	}
+	
+	return true;
 }
 
 

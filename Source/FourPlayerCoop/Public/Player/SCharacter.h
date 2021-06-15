@@ -141,11 +141,27 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Sockets")
 	FName SpineAttachPoint;
 
+	/* Drop distance from the character when dropping inventory item */
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	float DropWeaponMaxDistance;
+
 	/* Mapped to input */
 	void OnEquipPrimaryWeapon();
 
 	/* Mapped to input */
 	void OnEquipSecondaryWeapon();
+
+	/* Mapped to input */	
+	void DropWeapon();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerDropWeapon();
+
+	void ServerDropWeapon_Implementation();
+
+	bool ServerDropWeapon_Validate();
+
+
 
 
 public:
@@ -183,6 +199,12 @@ public:
 	/* Adds weapon to inventory */
 	void AddWeapon(ASWeapon* Weapon);
 
+	/* Removes weapon form inventory and destroy */
+	void RemoveWeapon(ASWeapon* Weapon, bool bDestory);
+
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void SwapToNewWeaponMesh();
+
+	/* Check if weapon slot available, limited to one item per type - Primary and Secondary */
+	bool WeaponSlotAvailable(EInventorySlot CheckSlot);
 };
