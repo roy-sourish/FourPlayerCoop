@@ -112,6 +112,11 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
 	PlayerInputComponent->BindAction("DropWeapon", IE_Pressed, this, &ASCharacter::DropWeapon);
 
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::OnStartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::OnStopFire);
+
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASCharacter::OnReload);
+
 	PlayerInputComponent->BindAction("PrimaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipPrimaryWeapon);
 	PlayerInputComponent->BindAction("SecondaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipSecondaryWeapon);
 }
@@ -300,6 +305,32 @@ ASUsableActor* ASCharacter::GetUsableInView() const
 }
 
 
+void ASCharacter::OnReload()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->StartReload();
+	}
+}
+
+
+void ASCharacter::OnStartFire()
+{
+	if (IsSprinting())
+	{
+		SetSprinting(false);
+	}
+
+	StartWeaponFire();
+}
+
+
+void ASCharacter::OnStopFire()
+{
+	StopWeaponFire();
+}
+
+
 void ASCharacter::OnEquipPrimaryWeapon()
 {
 	if (Inventory.Num() >= 1)
@@ -398,12 +429,38 @@ void ASCharacter::DropWeapon()
 			{
 				// Already enabled in editor
 				MeshComp->SetSimulatePhysics(true);
-				MeshComp->AddImpulse(FVector(1, 1, 1) * 10, NAME_None, true);		//
+				MeshComp->AddImpulse(Direction* 200, NAME_None, true);		//
 			}
 		}
 
 		/* Remove Weapon from inventory and destroy */
 		RemoveWeapon(CurrentWeapon, true);
+	}
+}
+
+
+void ASCharacter::StartWeaponFire()
+{
+	if (!bWantsToFire)
+	{
+		bWantsToFire = true;
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->StartFire();
+		}
+	}
+}
+
+
+void ASCharacter::StopWeaponFire()
+{
+	if (bWantsToFire)
+	{
+		bWantsToFire = false;
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->StopFire();
+		}
 	}
 }
 

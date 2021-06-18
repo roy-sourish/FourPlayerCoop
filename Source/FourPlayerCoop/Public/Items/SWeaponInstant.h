@@ -9,9 +9,27 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Abstract)
 class FOURPLAYERCOOP_API ASWeaponInstant : public ASWeapon
 {
 	GENERATED_BODY()
 	
+protected:
+	
+	ASWeaponInstant();
+
+	/*****************************************************************/
+	/* Damage Processing                                             */
+	/*****************************************************************/
+
+	virtual void FireWeapon() override;
+
+
+
+	/*****************************************************************/
+	/* Weapon Configuration                                          */
+	/*****************************************************************/
+
+	UPROPERTY(EditDefaultsOnly)
+	float WeaponRange;
 };

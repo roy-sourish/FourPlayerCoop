@@ -6,7 +6,7 @@
 #include "GameFramework/Character.h"
 #include "SBaseCharacter.generated.h"
 
-UCLASS()
+UCLASS(ABSTRACT)
 class FOURPLAYERCOOP_API ASBaseCharacter : public ACharacter
 {
 	GENERATED_BODY()

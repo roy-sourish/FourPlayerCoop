@@ -2,13 +2,14 @@
 
 
 #include "Items/SWeapon.h"
-#include "FourPlayerCoop/STypes.h"
 #include "Player/SCharacter.h"
 #include "Player/SPlayerController.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
-
+#include "FourPlayerCoop/STypes.h"
+#include "FourPlayerCoop/FourPlayerCoop.h"
 
 ASWeapon::ASWeapon()
 {
@@ -23,14 +24,34 @@ ASWeapon::ASWeapon()
 	RootComponent = Mesh;
 
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PrePhysics;
 
 	SetReplicates(true);
 	bNetUseOwnerRelevancy = true;
 
 	bIsEquipped = false;
+	MuzzleAttachPoint = TEXT("MuzzleSocket");
 	StorageSlot = EInventorySlot::Primary;
+	CurrentState = EWeaponState::Idle;
 
+	ShotsPerMinute = 700;
+	StartAmmo = 999;
+	MaxAmmo = 999;
+	MaxAmmoPerClip = 30;
 	NoEquipAnimDuration = 0.5f;
+	NoAnimReloadDuration = 1.5f;
+
+}
+
+
+void ASWeapon::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// Setup Configuration
+	TimeBetweenShots = 60.0f / ShotsPerMinute;
+	CurrentAmmo = FMath::Min(StartAmmo, MaxAmmo);
+	CurrentAmmoInClip = FMath::Min(MaxAmmoPerClip, StartAmmo);
 }
 
 
@@ -65,6 +86,445 @@ USkeletalMeshComponent* ASWeapon::GetWeaponMesh() const
 }
 
 
+void ASWeapon::StartFire()
+{
+	// Push to server if client 
+	if (!HasAuthority())
+	{
+		ServerStartFire();
+	}
+
+	if (!bWantsToFire)
+	{
+		bWantsToFire = true;
+		DetermineWeaponState();
+	}
+}
+
+
+void ASWeapon::StopFire()
+{
+	if (!HasAuthority())
+	{
+		ServerStopFire();
+	}
+
+	if (bWantsToFire)
+	{
+		bWantsToFire = false;
+		DetermineWeaponState();
+	}
+}
+
+
+bool ASWeapon::CanFire() const
+{
+	bool bPawnCanFire = true; // Temp - Check if Pawn is alive and can fire 
+	bool bStateOK = (CurrentState == EWeaponState::Idle) || CurrentState == EWeaponState::Firing;
+	return bPawnCanFire && bStateOK && !bPendingReload;
+}
+
+
+FVector ASWeapon::GetAdjustedAim() const
+{
+	APawn* MyInstigator = GetInstigator();
+
+	ASPlayerController* const PC = MyInstigator ? Cast<ASPlayerController>(MyInstigator->Controller) : nullptr;
+	FVector FinalAim = FVector::ZeroVector;
+
+	if (PC)
+	{
+		FVector CamLoc;
+		FRotator CamRot;
+
+		PC->GetPlayerViewPoint(CamLoc, CamRot);
+		FinalAim = CamRot.Vector();
+	}
+	else if (MyInstigator)
+	{
+		FinalAim = MyInstigator->GetBaseAimRotation().Vector();
+	}
+
+	return FinalAim;
+}
+
+
+FVector ASWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
+{
+	ASPlayerController* PC = MyPawn ? Cast<ASPlayerController>(MyPawn->Controller) : nullptr;
+	FVector OutStartTrace = FVector::ZeroVector;
+
+	if (PC)
+	{
+		FRotator DummyRot;
+		PC->GetPlayerViewPoint(OutStartTrace, DummyRot);
+
+		/* Adjust the ray so there is nothing blocking the ray between the camera and the pawn and calculate the distance from adjusted start. */
+		OutStartTrace = OutStartTrace + AimDir * (FVector::DotProduct((GetInstigator()->GetActorLocation() - OutStartTrace), AimDir));
+	}
+
+	return OutStartTrace;
+}
+
+
+FHitResult ASWeapon::WeaponTrace(const FVector& TraceFrom, const FVector& TraceTo) const
+{
+	FCollisionQueryParams TraceParams(TEXT("WeaponTrace"), true, GetInstigator());
+	TraceParams.bReturnPhysicalMaterial = true;
+
+	FHitResult Hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceFrom, TraceTo, COLLISION_WEAPON, TraceParams);
+
+	return Hit;
+}
+
+
+void ASWeapon::DetermineWeaponState()
+{
+	EWeaponState NewState = EWeaponState::Idle;
+
+	if (bIsEquipped)
+	{
+		if (bPendingReload)
+		{
+			if (CanReload())
+			{
+				NewState = EWeaponState::Reloading;
+			}
+			else
+			{
+				NewState = CurrentState;
+			}
+		}
+		else if (!bPendingReload && bWantsToFire && CanFire())
+		{
+			NewState = EWeaponState::Firing;
+		}
+	}
+	else if (bPendingEquip)
+	{
+		NewState = EWeaponState::Equipping;
+	}
+
+	SetWeaponState(NewState);
+}
+
+
+void ASWeapon::SetWeaponState(EWeaponState NewState)
+{
+	const EWeaponState PrevState = CurrentState;
+
+	if (PrevState == EWeaponState::Firing && NewState != EWeaponState::Firing)
+	{
+		OnBurstFinished();
+	}
+
+	CurrentState = NewState;
+
+	if (PrevState != EWeaponState::Firing && NewState == EWeaponState::Firing)
+	{
+		OnBurstStarted();
+	}
+}
+
+
+void ASWeapon::HandleFiring()
+{
+	if (CurrentAmmoInClip > 0 && CanFire())
+	{
+		if (GetNetMode() != NM_DedicatedServer)
+		{
+			SimulateWeaponFire();
+		}
+
+		if (MyPawn && MyPawn->IsLocallyControlled())
+		{
+			FireWeapon();
+
+			UseAmmo();
+
+			BurstCounter++;
+		}
+	}
+	else if (CanReload())
+	{
+		StartReload();
+	}
+	else if (MyPawn && MyPawn->IsLocallyControlled())
+	{
+		if (GetCurrentAmmo() == 0 && !bRefiring)
+		{
+			PlayWeaponSound(OutOfAmmoSound);
+		}
+
+		/* Reload after firing last round */
+		if (CurrentAmmoInClip <= 0 && CanReload())
+		{
+			StartReload();
+		}
+
+		if (BurstCounter > 0)
+		{
+			OnBurstFinished();
+		}
+	}
+
+	if (MyPawn && MyPawn->IsLocallyControlled())
+	{
+		if (!HasAuthority())
+		{
+			ServerHandleFiring();
+		}
+
+		bRefiring = (CurrentState == EWeaponState::Firing) && (TimeBetweenShots > 0.0f);
+		if (bRefiring)
+		{
+			GetWorldTimerManager().SetTimer(TimerHandle_HandleFiring, this, &ASWeapon::HandleFiring, TimeBetweenShots, false);
+		}
+	}
+
+	LastFireTime = GetWorld()->GetTimeSeconds();
+}
+
+
+void ASWeapon::OnBurstStarted()
+{
+	const float GameTime = GetWorld()->GetTimeSeconds();
+	if (LastFireTime > 0.0f && TimeBetweenShots > 0.0f && LastFireTime + TimeBetweenShots > GameTime)
+	{
+		GetWorldTimerManager().SetTimer(TimerHandle_HandleFiring, this, &ASWeapon::HandleFiring, LastFireTime + TimeBetweenShots - GameTime, false);
+	}
+	else
+	{
+		HandleFiring();
+	}
+}
+
+
+void ASWeapon::OnBurstFinished()
+{
+	BurstCounter = 0;
+
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		StopSimulatingWeaponFire();
+	}
+
+	GetWorldTimerManager().ClearTimer(TimerHandle_HandleFiring);
+	bRefiring = false;
+}
+
+
+void ASWeapon::ServerStartFire_Implementation()
+{
+	StartFire();
+}
+
+
+bool ASWeapon::ServerStartFire_Validate()
+{
+	return true;
+}
+
+
+void ASWeapon::ServerStopFire_Implementation()
+{
+	StopFire();
+}
+
+
+bool ASWeapon::ServerStopFire_Validate()
+{
+	return true;
+}
+
+
+void ASWeapon::ServerHandleFiring_Implementation()
+{
+	const bool bShouldUpdateAmmo = (CurrentAmmoInClip > 0) && CanFire();
+
+	HandleFiring();
+
+	if (bShouldUpdateAmmo)
+	{
+		UseAmmo();
+		BurstCounter++;
+	}
+}
+
+
+bool ASWeapon::ServerHandleFiring_Validate()
+{
+	return true;
+}
+
+
+FVector ASWeapon::GetMuzzleLocation() const
+{
+	return Mesh->GetSocketLocation(MuzzleAttachPoint);
+}
+
+
+UAudioComponent* ASWeapon::PlayWeaponSound(USoundBase* SoundToPlay)
+{
+	UAudioComponent* AC = nullptr;
+	if (SoundToPlay && MyPawn)
+	{
+		AC = UGameplayStatics::SpawnSoundAttached(SoundToPlay, MyPawn->GetRootComponent());
+	}
+
+	return AC;
+}
+
+
+void ASWeapon::SimulateWeaponFire()
+{
+	if (MuzzleFX)
+	{
+		MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh, MuzzleAttachPoint);
+	}
+
+	if (!bPlayingFireAnim)
+	{
+		PlayWeaponAnimation(FireAnim);
+		bPlayingFireAnim = true;
+	}
+
+	PlayWeaponSound(FireSound);
+}
+
+
+void ASWeapon::StopSimulatingWeaponFire()
+{
+	if (bPlayingFireAnim)
+	{
+		StopWeaponAnimation(FireAnim);
+		bPlayingFireAnim = false;
+	}
+}
+
+
+void ASWeapon::UseAmmo()
+{
+	CurrentAmmoInClip--;
+	CurrentAmmo--;
+}
+
+
+void ASWeapon::OnRep_Reload()
+{
+	if (bPendingReload)
+	{
+		/* By passing true we do not push back to the server and execute it locally */
+		StartReload(true);
+	}
+	else
+	{
+		StopSimulateReload();
+	}
+}
+
+
+bool ASWeapon::CanReload()
+{
+	bool bCanReload = true; // Temp - Check if player is alive or not 
+	bool bGotAmmo = (CurrentAmmoInClip < MaxAmmoPerClip) && ((CurrentAmmo - CurrentAmmoInClip) > 0);
+	bool bStateOKToReload = ((CurrentState == EWeaponState::Idle) || (CurrentState == EWeaponState::Firing));
+	return (bCanReload && bGotAmmo && bStateOKToReload);
+}
+
+
+void ASWeapon::ServerStartReload_Implementation()
+{
+	StartReload();
+}
+
+
+bool ASWeapon::ServerStartReload_Validate()
+{
+	return true;
+}
+
+
+void ASWeapon::StartReload(bool bFromReplication)
+{
+	// Push request to server 
+	if (!bFromReplication && !HasAuthority())
+	{
+		ServerStartReload();
+	}
+
+	if (bFromReplication || CanReload())
+	{
+		bPendingReload = true;
+		DetermineWeaponState();
+
+		float AnimDuration = PlayWeaponAnimation(ReloadAnim);
+		if (AnimDuration <= 0.0f)
+		{
+			AnimDuration = NoAnimReloadDuration;
+		}
+
+		GetWorldTimerManager().SetTimer(TimerHandle_StopReload, this, &ASWeapon::StopSimulateReload, AnimDuration, false);
+		
+		if (HasAuthority())
+		{
+			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &ASWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
+		}
+
+		if (MyPawn && MyPawn->IsLocallyControlled())
+		{
+			PlayWeaponSound(ReloadSound);
+		}
+	}
+}
+
+
+void ASWeapon::StopSimulateReload()
+{
+	if (CurrentState == EWeaponState::Reloading)
+	{
+		bPendingReload = false;
+		DetermineWeaponState();
+		StopWeaponAnimation(ReloadAnim);
+	}
+}
+
+
+void ASWeapon::ReloadWeapon()
+{
+	int32 ClipDelta = FMath::Min(MaxAmmoPerClip - CurrentAmmoInClip, CurrentAmmo - CurrentAmmoInClip);
+	if (ClipDelta > 0)
+	{
+		CurrentAmmoInClip += ClipDelta;
+	}
+}
+
+
+int32 ASWeapon::GetCurrentAmmo() const
+{
+	return CurrentAmmo;
+}
+
+
+int32 ASWeapon::GetCurrentAmmoInClip() const
+{
+	return CurrentAmmoInClip;
+}
+
+
+int32 ASWeapon::GetMaxAmmoPerClip() const
+{
+	return MaxAmmoPerClip;
+}
+
+
+int32 ASWeapon::GetMaxAmmo() const
+{
+	return MaxAmmo;
+}
+
+
 void ASWeapon::OnEnterInventory(ASCharacter* NewOwner)
 {
 	SetOwningPawn(NewOwner);
@@ -83,7 +543,6 @@ void ASWeapon::OnLeaveInventory()
 	{
 		OnUnEquip();
 	}
-
 
 	DetachMeshFromPawn();
 }
@@ -118,12 +577,25 @@ void ASWeapon::OnEquipFinished()
 
 	bIsEquipped = true;
 	bPendingEquip = false;
+
+	DetermineWeaponState();
+
+	if (MyPawn)
+	{
+		// Try to reload empty clip
+		if (MyPawn->IsLocallyControlled() && CurrentAmmoInClip <= 0 && CanReload())
+		{
+			StartReload();
+		}
+	}
 }
+
 
 bool ASWeapon::IsEquipped() const
 {
 	return bIsEquipped;
 }
+
 
 bool ASWeapon::IsWeaponAttachedToPawn()
 {
@@ -134,7 +606,7 @@ bool ASWeapon::IsWeaponAttachedToPawn()
 void ASWeapon::OnEquip(bool bPlayAnimation)
 {
 	bPendingEquip = true;
-	//DetermineWeaponState();
+	DetermineWeaponState();
 
 	if (bPlayAnimation)
 	{
@@ -155,12 +627,17 @@ void ASWeapon::OnEquip(bool bPlayAnimation)
 	}
 
 	// Play EquipSound
+	if (MyPawn && MyPawn->IsLocallyControlled())
+	{
+		PlayWeaponSound(EquipSound);
+	}
 }
 
 
 void ASWeapon::OnUnEquip()
 {
 	bIsEquipped = false;
+	StopFire();
 
 	if (bPendingEquip)
 	{
@@ -168,6 +645,29 @@ void ASWeapon::OnUnEquip()
 		bPendingEquip = false;
 
 		GetWorldTimerManager().ClearTimer(EquipFinishedTimerHandle);
+	}
+
+	if (bPendingReload)
+	{
+		StopWeaponAnimation(ReloadAnim);
+		bPendingReload = false;
+
+		GetWorldTimerManager().ClearTimer(TimerHandle_ReloadWeapon);
+	}
+
+	DetermineWeaponState();
+}
+
+
+void ASWeapon::OnRep_BurstCounter()
+{
+	if (BurstCounter > 0)
+	{
+		SimulateWeaponFire();
+	}
+	else
+	{
+		StopSimulatingWeaponFire();
 	}
 }
 
@@ -204,4 +704,9 @@ void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ASWeapon, MyPawn);
+
+	DOREPLIFETIME_CONDITION(ASWeapon, BurstCounter, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(ASWeapon, CurrentAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ASWeapon, CurrentAmmoInClip, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ASWeapon, bPendingReload, COND_SkipOwner);
 }

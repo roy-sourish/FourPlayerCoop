@@ -145,6 +145,16 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	float DropWeaponMaxDistance;
 
+	void OnReload();
+
+	bool bWantsToFire;
+
+	/* Mapped to input */
+	void OnStartFire();
+
+	/* Mapped to input */
+	void OnStopFire();
+
 	/* Mapped to input */
 	void OnEquipPrimaryWeapon();
 
@@ -153,6 +163,10 @@ private:
 
 	/* Mapped to input */	
 	void DropWeapon();
+
+	void StartWeaponFire();
+
+	void StopWeaponFire();
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerDropWeapon();
