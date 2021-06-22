@@ -28,6 +28,13 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	virtual void PawnClientRestart() override;
+
+	/* Stop playing all montages */
+	void StopAllAnimMontages();
+
 private:
 
 	/* Spring Arm Component */
@@ -175,6 +182,7 @@ private:
 
 	bool ServerDropWeapon_Validate();
 
+	void DestroyInventory();
 
 
 
@@ -221,4 +229,24 @@ public:
 
 	/* Check if weapon slot available, limited to one item per type - Primary and Secondary */
 	bool WeaponSlotAvailable(EInventorySlot CheckSlot);
+
+	/* Check if pawn is allowed to fire weapon */
+	bool CanFire() const;
+
+	bool CanReload() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	bool IsFiring() const;
+
+
+	/*************************************************************************/
+	/* Damage and Death                                                      */
+	/*************************************************************************/
+
+
+	virtual void OnDeath(float KillingDamage, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser) override;
+
+	virtual void Suicide();
+
+	virtual void KilledBy(class APawn* EventInstigator);
 };

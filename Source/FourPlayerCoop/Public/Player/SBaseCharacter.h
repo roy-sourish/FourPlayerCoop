@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "FourPlayerCoop/STypes.h"
 #include "SBaseCharacter.generated.h"
 
 UCLASS(ABSTRACT)
@@ -22,6 +23,12 @@ public:
 	virtual void SetSprinting(bool NewSprinting);
 
 	float GetSprintSpeedModifier() const;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* SoundTakeHit;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	class USoundBase* SoundDeath;
 
 protected:
 
@@ -68,4 +75,55 @@ public:
 	/* Retrieve Pitch and Yaw from Current Camera */
 	UFUNCTION(BlueprintCallable, Category = "Targeting")
 	FRotator GetAimOffsets() const;
+
+
+	/************************************************************************/
+	/* Health                                                               */
+	/************************************************************************/
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerCondition")
+	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerCondition")
+	float GetHealth() const;
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerCondition")
+	bool IsAlive() const;
+
+
+
+	/***********************************************************************/
+	/* Damage and Death                                                    */
+	/***********************************************************************/
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Health", Replicated)
+	float Health;
+
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	virtual bool CanDie(float KillingDamage, FDamageEvent const& DamageEvent, AController* Killer, AActor* DamageCauser) const;
+
+	virtual bool Die(float KillingDamage, FDamageEvent const& DamageEvent, AController* Killer, AActor* DamageCauser);
+
+	virtual void OnDeath(float KillingDamage, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser);
+
+	virtual void FellOutOfWorld(const class UDamageType& DmgType) override;
+
+	void SetRagdollPhysics();
+
+	virtual void PlayHit(float DamageTaken, struct FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bKilled);
+
+	void ReplicateHit(float DamageTaken, struct FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser, bool bKilled);
+
+	/* Holds hit data to replicate hits and death to clients */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_LastTakeHitInfo)
+	struct FTakeHitInfo LastTakeHitInfo;
+
+	UFUNCTION()
+	void OnRep_LastTakeHitInfo();
+
+	bool bIsDying;
+
 };

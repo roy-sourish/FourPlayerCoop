@@ -2,15 +2,17 @@
 
 
 #include "Player/SCharacter.h"
+#include "Items/SUsableActor.h"
+#include "Items/SWeapon.h"
+#include "Items/SWeaponPickup.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SCharacterMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "Items/SUsableActor.h"
-#include "Items/SWeapon.h"
-#include "Items/SWeaponPickup.h"
 #include "FourPlayerCoop/STypes.h"
+#include "FourPlayerCoop/FourPlayerCoop.h"
 
 
 ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -23,6 +25,9 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 	MoveComp->bCanWalkOffLedgesWhenCrouching = true;
 	MoveComp->MaxWalkSpeedCrouched = 200;
 
+	/* Ignore this channel or it will absorbe the trace impacts instead of the skeletal mesh*/
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
+	
 	// Enable Crouching 
 	MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
 
@@ -35,6 +40,8 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 
 	MaxUseDistance = 500.0f;
 	DropWeaponMaxDistance = 100.0f;
+
+	Health = 100;
 
 	// Weapon Sockets 
 	WeaponAttachPoint = TEXT("WeaponSocket");
@@ -119,6 +126,32 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("PrimaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipPrimaryWeapon);
 	PlayerInputComponent->BindAction("SecondaryWeapon", IE_Pressed, this, &ASCharacter::OnEquipSecondaryWeapon);
+}
+
+
+void ASCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	DestroyInventory();
+}
+
+
+void ASCharacter::PawnClientRestart()
+{
+	Super::PawnClientRestart();
+
+	/* Equip the weapon on the client side. */
+	SetCurrentWeapon(CurrentWeapon);
+}
+
+
+void ASCharacter::StopAllAnimMontages()
+{
+	USkeletalMeshComponent* UseMesh = GetMesh();
+	if (UseMesh && UseMesh->AnimScriptInstance)
+	{
+		UseMesh->AnimScriptInstance->Montage_Stop(0.0f);
+	}
 }
 
 
@@ -477,6 +510,24 @@ bool ASCharacter::ServerDropWeapon_Validate()
 }
 
 
+void ASCharacter::DestroyInventory()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	for (int32 i = Inventory.Num() - 1; i >= 0; i--)
+	{
+		ASWeapon* Weapon = Inventory[i];
+		if (Weapon)
+		{
+			RemoveWeapon(Weapon, true);
+		}
+	}
+}
+
+
 void ASCharacter::EquipWeapon(ASWeapon* Weapon)
 {
 	if (Weapon)
@@ -671,6 +722,60 @@ bool ASCharacter::WeaponSlotAvailable(EInventorySlot CheckSlot)
 	}
 	
 	return true;
+}
+
+
+bool ASCharacter::CanFire() const
+{
+	return IsAlive();
+}
+
+
+bool ASCharacter::CanReload() const
+{
+	return IsAlive();
+}
+
+
+bool ASCharacter::IsFiring() const
+{
+	return CurrentWeapon && CurrentWeapon->GetCurrentState() == EWeaponState::Firing;
+}
+
+
+void ASCharacter::OnDeath(float KillingDamage, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser)
+{
+	if (bIsDying)
+	{
+		return;
+	}
+
+	DestroyInventory();
+	StopAllAnimMontages();
+
+	Super::OnDeath(KillingDamage, DamageEvent, PawnInstigator, DamageCauser);
+}
+
+
+void ASCharacter::Suicide()
+{
+	KilledBy(this);
+}
+
+
+void ASCharacter::KilledBy(APawn* EventInstigator)
+{
+	if (HasAuthority() && !bIsDying)
+	{
+		AController* Killer = nullptr;
+		if (EventInstigator != nullptr)
+		{
+			Killer = EventInstigator->Controller;
+			LastHitBy = nullptr;
+		}
+
+		Die(Health, FDamageEvent(UDamageType::StaticClass()), Killer, nullptr);
+	}
 }
 
 

@@ -116,10 +116,15 @@ void ASWeapon::StopFire()
 	}
 }
 
+EWeaponState ASWeapon::GetCurrentState() const
+{
+	return CurrentState;
+}
+
 
 bool ASWeapon::CanFire() const
 {
-	bool bPawnCanFire = true; // Temp - Check if Pawn is alive and can fire 
+	bool bPawnCanFire = MyPawn && MyPawn->CanFire();
 	bool bStateOK = (CurrentState == EWeaponState::Idle) || CurrentState == EWeaponState::Firing;
 	return bPawnCanFire && bStateOK && !bPendingReload;
 }
@@ -427,7 +432,7 @@ void ASWeapon::OnRep_Reload()
 
 bool ASWeapon::CanReload()
 {
-	bool bCanReload = true; // Temp - Check if player is alive or not 
+	bool bCanReload = (!MyPawn || MyPawn->CanReload());
 	bool bGotAmmo = (CurrentAmmoInClip < MaxAmmoPerClip) && ((CurrentAmmo - CurrentAmmoInClip) > 0);
 	bool bStateOKToReload = ((CurrentState == EWeaponState::Idle) || (CurrentState == EWeaponState::Firing));
 	return (bCanReload && bGotAmmo && bStateOKToReload);
@@ -524,6 +529,11 @@ int32 ASWeapon::GetMaxAmmo() const
 	return MaxAmmo;
 }
 
+
+ASCharacter* ASWeapon::GetPawnOwner() const
+{
+	return MyPawn;
+}
 
 void ASWeapon::OnEnterInventory(ASCharacter* NewOwner)
 {

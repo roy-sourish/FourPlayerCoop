@@ -71,6 +71,10 @@ public:
 	/* Set Weapons Owning Pawn */
 	void SetOwningPawn(ASCharacter* NewOwner);
 
+	/* Get pawn owner */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	class ASCharacter* GetPawnOwner() const;
+
 	virtual void OnEnterInventory(ASCharacter* NewOwner);
 
 	virtual void OnLeaveInventory();
@@ -109,6 +113,7 @@ public:
 
 	void StopFire();
 
+	EWeaponState GetCurrentState() const;
 
 protected:
 
