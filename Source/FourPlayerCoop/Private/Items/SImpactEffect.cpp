@@ -29,7 +29,7 @@ void ASImpactEffect::PostInitializeComponents()
 	UParticleSystem* ImpactEffect = GetImpactFX(HitSurfaceType);
 	if (ImpactEffect)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Impact"));
+		//UE_LOG(LogTemp, Error, TEXT("Impact"));
 		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactEffect, GetActorLocation(), GetActorRotation());
 	}
 

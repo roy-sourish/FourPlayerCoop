@@ -6,7 +6,9 @@
 
 ASPlayerState::ASPlayerState()
 {
-	/* AI will remain in team 0, players are updated to team 1 through the GameMode::InitNewPlayer */
+	/* AI will remain in team 0, players are updated to team 1 through the GameMode::InitNewPlayer
+	   NOTE: Need to set bWantsPlayerState to true in AIController to assign PlayerState to the AI,
+	   and to set its default team number to 0 (0 and 1 for the AI and Players resp.) */
 	TeamNumber = 0;
 }
 

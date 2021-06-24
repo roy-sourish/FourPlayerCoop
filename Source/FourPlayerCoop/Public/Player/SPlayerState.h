@@ -17,7 +17,7 @@ class FOURPLAYERCOOP_API ASPlayerState : public APlayerState
 	ASPlayerState();
 
 	/* Team number assigned to player */
-	UPROPERTY(Transient, Replicated)
+	UPROPERTY(VisibleDefaultsOnly,Transient, Replicated)
 	int32 TeamNumber;
 
 public:

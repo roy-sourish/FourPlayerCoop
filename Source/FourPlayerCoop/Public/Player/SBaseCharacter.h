@@ -16,6 +16,7 @@ public:
 	// Sets default values for this character's properties
 	ASBaseCharacter(const class FObjectInitializer& ObjectInitializer);
 
+
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	virtual bool IsSprinting() const;
 

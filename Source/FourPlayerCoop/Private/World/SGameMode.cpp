@@ -16,6 +16,9 @@ ASGameMode::ASGameMode()
 	PlayerStateClass = ASPlayerState::StaticClass();
 
 	bAllowFriendlyFireDamage = false;
+
+	/* NOTE: Need to set bWantsPlayerState to true in AIController to assign PlayerState to the AI,
+	   and to set its default team number to 0 (0 and 1 for the AI and Players resp.) */
 	PlayerTeamNum = 1;
 }
 
@@ -46,7 +49,6 @@ FString ASGameMode::InitNewPlayer(APlayerController* NewPlayerController, const 
 
 	return Result;
 }
-
 
 void ASGameMode::Killed(AController* Killer, AController* VictimPlayer, APawn* VictimPawn, const UDamageType* DamageType)
 {

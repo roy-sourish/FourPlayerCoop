@@ -17,8 +17,6 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 {
 	GENERATED_BODY()
 
-	ASCharacter(const class FObjectInitializer& ObjectInitializer);
-
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -34,6 +32,10 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 
 	/* Stop playing all montages */
 	void StopAllAnimMontages();
+
+protected:
+
+	ASCharacter(const class FObjectInitializer& ObjectInitializer);
 
 private:
 
