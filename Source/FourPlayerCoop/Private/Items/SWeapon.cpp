@@ -288,6 +288,11 @@ void ASWeapon::HandleFiring()
 		}
 	}
 
+	if (MyPawn)
+	{
+		MyPawn->MakePawnNoise(1.0f);
+	}
+
 	LastFireTime = GetWorld()->GetTimeSeconds();
 }
 

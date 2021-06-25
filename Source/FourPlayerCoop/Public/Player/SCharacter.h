@@ -17,6 +17,8 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 {
 	GENERATED_BODY()
 
+protected:
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -33,7 +35,9 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 	/* Stop playing all montages */
 	void StopAllAnimMontages();
 
-protected:
+	float LastNoiseLoudness;
+
+	float LastMakeNoiseTime;
 
 	ASCharacter(const class FObjectInitializer& ObjectInitializer);
 
@@ -48,6 +52,17 @@ private:
 	UCameraComponent* CameraComp;
 
 public:
+
+	/* MakeNoise hook to trigger AI noise emitting ( loudness betw. 0.0 - 1.0 ) */
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void MakePawnNoise(float Loudness);
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	float GetLastMakeNoiseTime() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	float GetLastNoiseLoudness() const;
+
 
 	FORCEINLINE UCameraComponent* GetCameraComponent()
 	{

@@ -12,6 +12,9 @@ class FOURPLAYERCOOP_API ASBaseCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	/* Tracks noise data used by the pawn sensing component */
+	class UPawnNoiseEmitterComponent* NoiseEmitterComp;
+
 public:
 	// Sets default values for this character's properties
 	ASBaseCharacter(const class FObjectInitializer& ObjectInitializer);

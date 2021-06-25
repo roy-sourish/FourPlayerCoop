@@ -157,6 +157,30 @@ void ASCharacter::StopAllAnimMontages()
 }
 
 
+void ASCharacter::MakePawnNoise(float Loudness)
+{
+	if (HasAuthority())
+	{
+		MakeNoise(Loudness, this, GetActorLocation());
+	}
+
+	LastNoiseLoudness = Loudness;
+	LastMakeNoiseTime = GetWorld()->GetTimeSeconds();
+}
+
+
+float ASCharacter::GetLastMakeNoiseTime() const
+{
+	return LastMakeNoiseTime;
+}
+
+
+float ASCharacter::GetLastNoiseLoudness() const
+{
+	return LastNoiseLoudness;
+}
+
+
 void ASCharacter::MoveForward(float Val)
 {
 	if (Controller && Val != 0.0f)
