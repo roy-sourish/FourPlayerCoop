@@ -51,7 +51,7 @@ protected:
 
 	/* Pawn Owner */
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_MyPawn)
-	ASCharacter* MyPawn;
+	ASCharacter* MyPawn;		
 
 	UFUNCTION()
 	void OnRep_MyPawn();
@@ -114,10 +114,10 @@ public:
 	void StopFire();
 
 	EWeaponState GetCurrentState() const;
+	
+	bool CanFire() const;
 
 protected:
-
-	bool CanFire() const;
 
 	FVector GetAdjustedAim() const;
 

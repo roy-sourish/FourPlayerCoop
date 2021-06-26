@@ -22,9 +22,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTree;
 
-	UPROPERTY(EditDefaultsOnly, Category = "AI Weapon")
-	TSubclassOf<class ASWeapon> AIWeaponClass;
-
 protected:
 
 	UFUNCTION()

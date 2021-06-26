@@ -50,6 +50,7 @@ FString ASGameMode::InitNewPlayer(APlayerController* NewPlayerController, const 
 	return Result;
 }
 
+
 void ASGameMode::Killed(AController* Killer, AController* VictimPlayer, APawn* VictimPawn, const UDamageType* DamageType)
 {
 	// Do nothing (can we used to apply score or keep track of kill count)

@@ -32,16 +32,6 @@ void ASAdvancedAI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
-	if (AIWeaponClass)
-	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		ASWeapon* AIWeapon = GetWorld()->SpawnActor<ASWeapon>(AIWeaponClass, SpawnParams);
-		this->AddWeapon(AIWeapon);
-	}
-
 	if (PawnSensingComp)
 	{
 		PawnSensingComp->OnSeePawn.AddDynamic(this, &ASAdvancedAI::OnSeePlayer);
@@ -78,7 +68,7 @@ void ASAdvancedAI::Tick(float DeltaSeconds)
 
 void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 {
-	DrawDebugSphere(GetWorld(), Pawn->GetActorLocation(), 30.0f, 12, FColor::Red, false, 2.0f, 0.0f, 0.5f);
+	//DrawDebugSphere(GetWorld(), Pawn->GetActorLocation(), 30.0f, 12, FColor::Red, false, 2.0f, 0.0f, 0.5f);
 
 	if (!IsAlive())
 	{
@@ -99,7 +89,7 @@ void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 
 void ASAdvancedAI::OnHearNoise(APawn* NoiseInstigator, const FVector& Location, float Volume)
 {
-	DrawDebugSphere(GetWorld(), NoiseInstigator->GetActorLocation(), 30.0f, 12, FColor::Green, false, 2.0f, 0.0f, 0.50f);
+	//DrawDebugSphere(GetWorld(), NoiseInstigator->GetActorLocation(), 30.0f, 12, FColor::Green, false, 2.0f, 0.0f, 0.50f);
 	
 	if (!IsAlive())
 	{

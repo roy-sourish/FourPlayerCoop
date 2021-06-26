@@ -47,6 +47,8 @@ void ASWeaponInstant::FireWeapon()
 		/* Retrace with the new aim direction coming out of the weapon muzzle */	
 		Impact = WeaponTrace(MuzzleOrigin, MuzzleOrigin + (AdjustedAimDir * WeaponRange));
 		
+		// TODO: Use CVAR for debugs
+
 		// Debug weapon trace 
 		//DrawDebugLine(GetWorld(), MuzzleOrigin, MuzzleOrigin + (AdjustedAimDir * WeaponRange), FColor::Red, false, 2.0f, 0.0f, 1.0f);
 	}
@@ -55,6 +57,9 @@ void ASWeaponInstant::FireWeapon()
 		/* Use the maximum distance as the adjusted direction */
 		Impact.ImpactPoint = FVector_NetQuantize(EndPos);
 	}
+
+	//DrawDebugLine(GetWorld(), CameraPos, Impact.ImpactPoint, FColor::Red, false, 2.0f, 0.0f, 1.0f);
+
 
 	// Process Instant Hit 
 	ProcessInstantHit(Impact, MuzzleOrigin, AdjustedAimDir);
@@ -92,11 +97,9 @@ void ASWeaponInstant::DealDamage(const FHitResult& Impact, const FVector& ShootD
 
 bool ASWeaponInstant::ShouldDealDamage(AActor* TestActor) const
 {
-	if (TestActor)
+	if (TestActor)  
 	{
-		if (GetNetMode() != NM_Client ||
-			TestActor->HasAuthority() ||
-			TestActor->GetTearOff())
+		if (GetNetMode() != NM_Client || TestActor->HasAuthority() || TestActor->GetTearOff())
 		{
 			return true;
 		}

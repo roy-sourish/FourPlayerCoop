@@ -188,10 +188,6 @@ private:
 	/* Mapped to input */	
 	void DropWeapon();
 
-	void StartWeaponFire();
-
-	void StopWeaponFire();
-
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerDropWeapon();
 
@@ -204,6 +200,10 @@ private:
 
 
 public:
+
+	void StartWeaponFire();
+
+	void StopWeaponFire();
 
 	/* All Weapons and items the player currently holds */
 	/* NOTE: GameMode will populate this Inventory array and spawn default weapons of the player on spawn */

@@ -5,6 +5,8 @@
 #include "Player/SCharacter.h"
 #include "Player/SPlayerController.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "AI/SAdvancedAIController.h"
+#include "AI/SAdvancedAI.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
@@ -116,6 +118,7 @@ void ASWeapon::StopFire()
 	}
 }
 
+
 EWeaponState ASWeapon::GetCurrentState() const
 {
 	return CurrentState;
@@ -137,6 +140,7 @@ FVector ASWeapon::GetAdjustedAim() const
 	ASPlayerController* const PC = MyInstigator ? Cast<ASPlayerController>(MyInstigator->Controller) : nullptr;
 	FVector FinalAim = FVector::ZeroVector;
 
+	// If we have a player controller use it for the aim
 	if (PC)
 	{
 		FVector CamLoc;
@@ -147,7 +151,17 @@ FVector ASWeapon::GetAdjustedAim() const
 	}
 	else if (MyInstigator)
 	{
-		FinalAim = MyInstigator->GetBaseAimRotation().Vector();
+		// Now see if we have an AI controller - we will want to get the aim from there if we do
+		ASAdvancedAIController* AIController = MyPawn ? Cast<ASAdvancedAIController>(MyPawn->Controller) : nullptr;
+		if (AIController != nullptr)
+		{
+			FinalAim = AIController->GetControlRotation().Vector();
+		}
+		else
+		{
+			FinalAim = MyInstigator->GetBaseAimRotation().Vector();
+		}
+		
 	}
 
 	return FinalAim;
@@ -157,6 +171,8 @@ FVector ASWeapon::GetAdjustedAim() const
 FVector ASWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 {
 	ASPlayerController* PC = MyPawn ? Cast<ASPlayerController>(MyPawn->Controller) : nullptr;
+	ASAdvancedAIController* AIPC = MyPawn ? Cast<ASAdvancedAIController>(MyPawn->Controller) : nullptr;
+
 	FVector OutStartTrace = FVector::ZeroVector;
 
 	if (PC)
@@ -166,6 +182,10 @@ FVector ASWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 
 		/* Adjust the ray so there is nothing blocking the ray between the camera and the pawn and calculate the distance from adjusted start. */
 		OutStartTrace = OutStartTrace + AimDir * (FVector::DotProduct((GetInstigator()->GetActorLocation() - OutStartTrace), AimDir));
+	}
+	else if (AIPC)
+	{
+		OutStartTrace = GetMuzzleLocation();
 	}
 
 	return OutStartTrace;

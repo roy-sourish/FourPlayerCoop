@@ -37,7 +37,16 @@ protected:
 
 public:
 
+	UPROPERTY(EditDefaultsOnly, Category = "AI Weapon")
+	TSubclassOf<class ASWeapon> AIWeaponClass;
+
+	/* If there is a line of sight to current enemy start firing */
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	void ShootAtEnemy();
+
 	void SetTargetEnemy(APawn* NewTarget);
+
+	class ASCharacter* GetEnemy() const;
 
 	/** Returns BehaviourTreeCompnent SubObjects **/
 	FORCEINLINE UBehaviorTreeComponent* GetBehaviorTreeComp() const { return BehaviorTreeComp; }

@@ -684,14 +684,11 @@ void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* LastWeapon)
 	if (LastWeapon)		// LastWeapon = Current weapon that the player is holding 
 	{
 		LocalLastWeapon = LastWeapon;
-		//UE_LOG(LogTemp, Error, TEXT("if(LastWeapon)"));
 	}
 	else if (NewWeapon != CurrentWeapon)
 	{
 		// When Player Hands is empty the val of Current Weapon is nullptr, and LocalLastWepon is set to nullptr.
-	
 		LocalLastWeapon = CurrentWeapon;	
-		//UE_LOG(LogTemp, Error, TEXT("if(NewWeapon != CurrentWeapon)"));
 	}
 
 	// UnEquip the current weapon 
