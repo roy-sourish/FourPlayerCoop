@@ -59,9 +59,11 @@ void ASAdvancedAI::Tick(float DeltaSeconds)
 		if (AIController)
 		{
 			bSensedTarget = false;
-			/* reset */	
+			/* reset */
 			AIController->SetTargetEnemy(nullptr);
 			AIController->SetLastKnownPosition(FVector::ZeroVector);
+
+			SetTargeting(false);
 		}
 	}
 }
@@ -70,7 +72,7 @@ void ASAdvancedAI::Tick(float DeltaSeconds)
 void ASAdvancedAI::FaceRotation(FRotator NewRotation, float DeltaTime)
 {
 	FRotator CurrentRotation = FMath::RInterpTo(GetActorRotation(), NewRotation, DeltaTime, 8.0f);
-	
+
 	Super::FaceRotation(CurrentRotation, DeltaTime);
 }
 
@@ -84,6 +86,8 @@ void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 		return;
 	}
 
+	SetTargeting(true);
+
 	LastSeenTime = GetWorld()->TimeSeconds;
 	bSensedTarget = true;
 
@@ -92,6 +96,13 @@ void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 	if (AIController && SensedPawn)
 	{
 		AIController->SetTargetEnemy(SensedPawn);
+
+		float DistToEnemy = (SensedPawn->GetActorLocation() - GetActorLocation()).Size();
+		UE_LOG(LogTemp, Error, TEXT("Dist = %f"), DistToEnemy);
+		if (DistToEnemy <= 1350.0f)
+		{
+			SetTargeting(true);
+		}
 	}
 }
 
@@ -99,7 +110,7 @@ void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 void ASAdvancedAI::OnHearNoise(APawn* NoiseInstigator, const FVector& Location, float Volume)
 {
 	//DrawDebugSphere(GetWorld(), NoiseInstigator->GetActorLocation(), 30.0f, 12, FColor::Green, false, 2.0f, 0.0f, 0.50f);
-	
+
 	if (!IsAlive())
 	{
 		return;
@@ -111,6 +122,7 @@ void ASAdvancedAI::OnHearNoise(APawn* NoiseInstigator, const FVector& Location, 
 	ASAdvancedAIController* AIController = Cast<ASAdvancedAIController>(GetController());
 	if (AIController)
 	{
+		SetTargeting(true);
 		AIController->SetLastKnownPosition(NoiseInstigator->GetActorLocation());
 	}
 }
