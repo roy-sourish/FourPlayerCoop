@@ -35,6 +35,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	FName TargetEnemyKeyName;
 
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	FName LastKnownPositionKeyName;
+
+
 public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI Weapon")
@@ -47,6 +51,31 @@ public:
 	void SetTargetEnemy(APawn* NewTarget);
 
 	class ASCharacter* GetEnemy() const;
+
+	void SetLastKnownPosition(FVector NewPosition);
+
+	FVector GetLastKnownPosition() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	void FindClosestEnemy();
+
+	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	bool FindClosestEnemyWithLOS(class ASCharacter* ExcludedEnemy);
+
+	bool HasWeaponLOSToEnemy(AActor* InEnemyActor, const bool bAnyEnemy) const;
+
+	// Begin AAdvancedAIController interface 
+	/* Update Direction AI is looking based on FocalPoint */
+	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true) override;
+	// End AAdvancedAIController interface 
+
+
+protected:
+
+	// Check if we have LOS to a character 
+	//bool LOSTrace(class ASCharacter* InEnemyChar) const;
+
+public:
 
 	/** Returns BehaviourTreeCompnent SubObjects **/
 	FORCEINLINE UBehaviorTreeComponent* GetBehaviorTreeComp() const { return BehaviorTreeComp; }

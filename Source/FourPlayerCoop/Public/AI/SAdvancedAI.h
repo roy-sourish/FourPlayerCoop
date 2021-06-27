@@ -19,8 +19,11 @@ public:
 
 	ASAdvancedAI(const class FObjectInitializer& ObjectInitializer);
 
+	virtual void FaceRotation(FRotator NewRotation, float DeltaTime = 0.0f) override;
+
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTree;
+
 
 protected:
 

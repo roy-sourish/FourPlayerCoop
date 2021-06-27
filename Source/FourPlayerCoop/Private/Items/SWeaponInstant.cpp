@@ -23,6 +23,8 @@ ASWeaponInstant::ASWeaponInstant()
 	ClientSideHitLeeway = 200.0f;
 	MinimumProjectileSpawnDistance = 800;
 	TracerRoundInterval = 3;
+
+	TrailTargetParam = "Target";
 }
 
 

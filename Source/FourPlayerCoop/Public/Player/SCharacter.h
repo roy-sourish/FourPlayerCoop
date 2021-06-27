@@ -17,6 +17,8 @@ class FOURPLAYERCOOP_API ASCharacter : public ASBaseCharacter
 {
 	GENERATED_BODY()
 
+
+
 protected:
 
 	// Called when the game starts or when spawned
@@ -68,6 +70,13 @@ public:
 	{
 		return CameraComp;
 	}
+
+	/**
+	* Check if pawn is enemy if given controller.
+	*
+	* @param	TestPC	Controller to check against.
+	*/
+	bool IsEnemyFor(AController* TestPC) const;
 
 	/***********************************************************************/
 	/* Movement															   */

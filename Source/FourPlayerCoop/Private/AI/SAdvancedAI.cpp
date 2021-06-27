@@ -61,8 +61,17 @@ void ASAdvancedAI::Tick(float DeltaSeconds)
 			bSensedTarget = false;
 			/* reset */	
 			AIController->SetTargetEnemy(nullptr);
+			AIController->SetLastKnownPosition(FVector::ZeroVector);
 		}
 	}
+}
+
+
+void ASAdvancedAI::FaceRotation(FRotator NewRotation, float DeltaTime)
+{
+	FRotator CurrentRotation = FMath::RInterpTo(GetActorRotation(), NewRotation, DeltaTime, 8.0f);
+	
+	Super::FaceRotation(CurrentRotation, DeltaTime);
 }
 
 
@@ -102,6 +111,6 @@ void ASAdvancedAI::OnHearNoise(APawn* NoiseInstigator, const FVector& Location, 
 	ASAdvancedAIController* AIController = Cast<ASAdvancedAIController>(GetController());
 	if (AIController)
 	{
-		AIController->SetTargetEnemy(NoiseInstigator);
+		AIController->SetLastKnownPosition(NoiseInstigator->GetActorLocation());
 	}
 }

@@ -13,6 +13,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "World/SGameMode.h"
 #include "FourPlayerCoop/STypes.h"
 #include "FourPlayerCoop/FourPlayerCoop.h"
 
@@ -49,6 +50,31 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer) : Su
 	WeaponAttachPoint = TEXT("WeaponSocket");
 	SecondaryAttachPoint = TEXT("SecondarySocket");
 	SpineAttachPoint = TEXT("SpineSocket");
+}
+
+
+bool ASCharacter::IsEnemyFor(AController* TestPC) const
+{
+	if (TestPC == Controller || TestPC == nullptr)
+	{
+		return false;
+	}
+
+	ASPlayerState* TestPlayerState = Cast<ASPlayerState>(TestPC->PlayerState);
+	ASPlayerState* MyPlayerState = Cast<ASPlayerState>(GetPlayerState());
+
+	bool bIsEnemy = true;
+	if (GetWorld()->GetGameState())
+	{
+		const ASGameMode* DefGame = Cast<ASGameMode>(GetWorld()->GetAuthGameMode());
+		//const ASGameMode* DefGame = GetWorld()->GetGameState()->GetDefaultGameMode<ASGameMode>();
+		if (DefGame && MyPlayerState && TestPlayerState)
+		{
+			bIsEnemy = DefGame->CanDealDamage(TestPlayerState, MyPlayerState);
+		}
+	}
+
+	return bIsEnemy;
 }
 
 
