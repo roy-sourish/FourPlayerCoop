@@ -143,6 +143,12 @@ bool ASBaseCharacter::IsAlive() const
 }
 
 
+void ASBaseCharacter::Heal(float HealAmount)
+{
+	Health = FMath::Clamp(Health + HealAmount, 0.0f, 100.0f);
+}
+
+
 float ASBaseCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (Health <= 0.f)
@@ -157,7 +163,7 @@ float ASBaseCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent,
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 	if (ActualDamage > 0.f)
 	{
-		Health -= ActualDamage;
+		Health = FMath::Clamp(Health-ActualDamage, 0.0f, 100.0f);
 		if (Health <= 0)
 		{
 			bool bCanDie = true;

@@ -94,7 +94,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PlayerCondition")
 	bool IsAlive() const;
 
-
+	void Heal(float HealAmount);
 
 	/***********************************************************************/
 	/* Damage and Death                                                    */

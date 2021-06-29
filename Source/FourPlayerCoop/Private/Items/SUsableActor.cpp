@@ -27,5 +27,4 @@ void ASUsableActor::OnEndFocus()
 void ASUsableActor::OnUsed(APawn* InstigatorPawn)
 {
     // Overriden by SPickupActor
-    UE_LOG(LogTemp, Warning, TEXT("OnUsed() -> Actor is Usable!"));
 }

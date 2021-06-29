@@ -521,6 +521,14 @@ void ASWeapon::StopSimulateReload()
 }
 
 
+void ASWeapon::SetAmmoCount(int32 NewTotalAmount)
+{
+	const int32 MissingAmmo = FMath::Max(0, MaxAmmo - CurrentAmmo);
+	NewTotalAmount = FMath::Min(NewTotalAmount, MissingAmmo);
+	CurrentAmmo += NewTotalAmount;
+}
+
+
 void ASWeapon::ReloadWeapon()
 {
 	int32 ClipDelta = FMath::Min(MaxAmmoPerClip - CurrentAmmoInClip, CurrentAmmo - CurrentAmmoInClip);

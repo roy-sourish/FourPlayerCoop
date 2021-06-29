@@ -301,6 +301,9 @@ public:
 
 	virtual void StopSimulateReload();
 
+	/* Add ammo to weapon */
+	void SetAmmoCount(int32 NewTotalAmount);
+
 	UFUNCTION(BlueprintCallable, Category = "Ammo")
 	int32 GetCurrentAmmo() const;
 	
