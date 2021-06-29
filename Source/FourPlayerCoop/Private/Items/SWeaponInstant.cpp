@@ -48,11 +48,6 @@ void ASWeaponInstant::FireWeapon()
 
 		/* Retrace with the new aim direction coming out of the weapon muzzle */	
 		Impact = WeaponTrace(MuzzleOrigin, MuzzleOrigin + (AdjustedAimDir * WeaponRange));
-		
-		// TODO: Use CVAR for debugs
-
-		// Debug weapon trace 
-		//DrawDebugLine(GetWorld(), MuzzleOrigin, MuzzleOrigin + (AdjustedAimDir * WeaponRange), FColor::Red, false, 2.0f, 0.0f, 1.0f);
 	}
 	else
 	{

@@ -97,12 +97,11 @@ void ASAdvancedAI::OnSeePlayer(APawn* Pawn)
 	{
 		AIController->SetTargetEnemy(SensedPawn);
 
-		float DistToEnemy = (SensedPawn->GetActorLocation() - GetActorLocation()).Size();
-		UE_LOG(LogTemp, Error, TEXT("Dist = %f"), DistToEnemy);
+		/*float DistToEnemy = (SensedPawn->GetActorLocation() - GetActorLocation()).Size();
 		if (DistToEnemy <= 1350.0f)
 		{
 			SetTargeting(true);
-		}
+		}*/
 	}
 }
 

@@ -17,6 +17,7 @@ void ASPlayerState::SetTeamNumber(int32 NewTeamNumber)
 	TeamNumber = NewTeamNumber;
 }
 
+
 int32 ASPlayerState::GetTeamNumber() const
 {
 	return TeamNumber;

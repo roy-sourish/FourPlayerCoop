@@ -6,6 +6,7 @@
 #include "Player/SCharacter.h"
 #include "Items/SWeapon.h"
 #include "Player/SPlayerState.h"
+#include "World/SGameState.h"
 
 
 
@@ -14,6 +15,7 @@ ASGameMode::ASGameMode()
 	// Set Default Classes
 	PlayerControllerClass = ASPlayerController::StaticClass();
 	PlayerStateClass = ASPlayerState::StaticClass();
+	GameStateClass = ASGameState::StaticClass();
 
 	bAllowFriendlyFireDamage = false;
 
@@ -70,6 +72,7 @@ bool ASGameMode::CanDealDamage(ASPlayerState* DamageCauser, ASPlayerState* Damag
 		return true;
 	}
 
+	UE_LOG(LogTemp, Error, TEXT("DamageCauser TNum = %d \n DamagePlayer TNum = %d\n"), DamageCauser->GetTeamNumber(), DamagedPlayer->GetTeamNumber())
 	// TODO: Compare Team numbers //
 	return DamageCauser && DamagedPlayer && (DamageCauser->GetTeamNumber() != DamagedPlayer->GetTeamNumber());
 }

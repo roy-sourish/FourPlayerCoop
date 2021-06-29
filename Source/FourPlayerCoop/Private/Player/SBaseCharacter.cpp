@@ -145,8 +145,6 @@ bool ASBaseCharacter::IsAlive() const
 
 float ASBaseCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	UE_LOG(LogTemp, Error, TEXT("TakeDamage() - SBaseCharacter()"));
-
 	if (Health <= 0.f)
 	{
 		return 0.f;
