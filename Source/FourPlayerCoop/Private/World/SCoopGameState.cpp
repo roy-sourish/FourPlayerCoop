@@ -1,15 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "World/SGameState.h"
+#include "World/SCoopGameState.h"
 #include "Net/UnrealNetwork.h"
 
-ASGameState::ASGameState()
+ASCoopGameState::ASCoopGameState()
 {
-
 }
 
-void ASGameState::SetWaveState(EWaveState NewState)
+void ASCoopGameState::SetWaveState(EWaveState NewState)
 {
 	if (HasAuthority())
 	{
@@ -22,15 +21,14 @@ void ASGameState::SetWaveState(EWaveState NewState)
 	}
 }
 
-
-void ASGameState::OnRep_WaveState(EWaveState OldState)
+void ASCoopGameState::OnRep_WaveState(EWaveState OldState)
 {
 	WaveStateChanged(WaveState, OldState);
 }
 
-void ASGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ASCoopGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ASGameState, WaveState);
+	DOREPLIFETIME(ASCoopGameState, WaveState);
 }

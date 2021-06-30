@@ -14,12 +14,16 @@ ASUsableActor::ASUsableActor()
 
 void ASUsableActor::OnBeginFocus()
 {
+    ShowPickupText(true);
+
     MeshComp->SetRenderCustomDepth(true);
 }
 
 
 void ASUsableActor::OnEndFocus()
 {
+    ShowPickupText(false);
+
     MeshComp->SetRenderCustomDepth(false);
 }
 

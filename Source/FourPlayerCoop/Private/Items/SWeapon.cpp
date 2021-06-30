@@ -523,9 +523,12 @@ void ASWeapon::StopSimulateReload()
 
 void ASWeapon::SetAmmoCount(int32 NewTotalAmount)
 {
-	const int32 MissingAmmo = FMath::Max(0, MaxAmmo - CurrentAmmo);
+	/*const int32 MissingAmmo = FMath::Max(0, MaxAmmo - CurrentAmmo);
 	NewTotalAmount = FMath::Min(NewTotalAmount, MissingAmmo);
-	CurrentAmmo += NewTotalAmount;
+	CurrentAmmo += NewTotalAmount;*/
+
+	CurrentAmmo = FMath::Clamp(CurrentAmmo + NewTotalAmount, 0, MaxAmmo);
+	//CurrentAmmoInClip += FMath::Clamp(CurrentAmmoInClip + NewTotalAmount, 0, MaxAmmoPerClip);
 }
 
 
@@ -567,6 +570,7 @@ ASCharacter* ASWeapon::GetPawnOwner() const
 {
 	return MyPawn;
 }
+
 
 void ASWeapon::OnEnterInventory(ASCharacter* NewOwner)
 {

@@ -9,6 +9,9 @@ ASWeaponPickup::ASWeaponPickup()
 {
 	// Set Respawn to false 
 	bAllowRespawn = false;
+
+	/* Enable support simulated physics movement when weapons are dropped by a player */
+	SetReplicateMovement(true);
 }
 
 void ASWeaponPickup::OnUsed(APawn* InstigatorPawn)

@@ -21,6 +21,9 @@ protected:
 
 public:
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Pickups")
+	void ShowPickupText(bool IsActive);
+
 	/* Player Looking At */	
 	virtual void OnBeginFocus();
 

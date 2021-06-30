@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Abstract)
 class FOURPLAYERCOOP_API ASWeaponPickup : public ASPickupActor
 {
 	GENERATED_BODY()

@@ -23,7 +23,6 @@ protected:
 
 	void BeginPlay() override;
 
-
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_IsActive)
 	bool bIsActive;
 

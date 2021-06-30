@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameStateBase.h"
-#include "SGameState.generated.h"
+#include "GameFramework/GameState.h"
+#include "SCoopGameState.generated.h"
+
 
 UENUM(BlueprintType)
 enum class EWaveState : uint8
@@ -13,7 +14,7 @@ enum class EWaveState : uint8
 	WaitingToStart,
 
 	WaveInProgress,
-	
+
 	// No longer spawning bots, waiting for players to kill remaining bots
 	WaitingToComplete,
 
@@ -22,8 +23,11 @@ enum class EWaveState : uint8
 	GameOver
 };
 
+/**
+ * 
+ */
 UCLASS()
-class FOURPLAYERCOOP_API ASGameState : public AGameStateBase
+class FOURPLAYERCOOP_API ASCoopGameState : public AGameState
 {
 	GENERATED_BODY()
 
@@ -40,7 +44,7 @@ protected:
 
 public:
 
-	ASGameState();
+	ASCoopGameState();
 
 	void SetWaveState(EWaveState NewState);
 	

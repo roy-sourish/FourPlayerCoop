@@ -2,7 +2,7 @@
 
 
 #include "World/SCoopGameMode.h"
-#include "World/SGameState.h"
+#include "World/SCoopGameState.h"
 #include "AI/SAdvancedAI.h"
 #include "Player/SPlayerState.h"
 #include "Player/SPlayerController.h"
@@ -13,7 +13,7 @@ ASCoopGameMode::ASCoopGameMode()
 	// Set Default Classes
 	PlayerControllerClass = ASPlayerController::StaticClass();
 	PlayerStateClass = ASPlayerState::StaticClass();
-	GameStateClass = ASGameState::StaticClass();
+	GameStateClass = ASCoopGameState::StaticClass();
 
 	bAllowFriendlyFireDamage = false;
 
@@ -161,7 +161,7 @@ void ASCoopGameMode::GameOver()
 
 void ASCoopGameMode::SetWaveState(EWaveState NewState)
 {
-	ASGameState* GS = GetGameState<ASGameState>();
+	ASCoopGameState* GS = GetGameState<ASCoopGameState>();
 	if (ensureAlways(GS))
 	{
 		GS->SetWaveState(NewState);

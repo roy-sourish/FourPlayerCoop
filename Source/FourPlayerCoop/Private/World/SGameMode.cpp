@@ -6,7 +6,7 @@
 #include "Player/SCharacter.h"
 #include "Items/SWeapon.h"
 #include "Player/SPlayerState.h"
-#include "World/SGameState.h"
+#include "World/SCoopGameState.h"
 
 
 
@@ -15,7 +15,7 @@ ASGameMode::ASGameMode()
 	// Set Default Classes
 	PlayerControllerClass = ASPlayerController::StaticClass();
 	PlayerStateClass = ASPlayerState::StaticClass();
-	GameStateClass = ASGameState::StaticClass();
+	GameStateClass = ASCoopGameState::StaticClass();
 
 	bAllowFriendlyFireDamage = false;
 

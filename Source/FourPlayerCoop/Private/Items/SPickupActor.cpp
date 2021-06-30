@@ -65,6 +65,8 @@ void ASPickupActor::OnPickedUp()
 {
 	if (MeshComp)
 	{
+		ShowPickupText(false);
+
 		MeshComp->SetVisibility(false);
 		MeshComp->SetSimulatePhysics(false);
 		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
