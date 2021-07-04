@@ -7,3 +7,13 @@ ASHUD::ASHUD()
 {
 
 }
+
+EHUDState ASHUD::GetCurrentState() const
+{
+	return CurrentState;
+}
+
+void ASHUD::OnStateChanged_Implementation(EHUDState NewState)
+{
+	CurrentState = NewState;
+}

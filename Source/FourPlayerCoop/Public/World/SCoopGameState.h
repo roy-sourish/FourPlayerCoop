@@ -37,15 +37,27 @@ protected:
 	void OnRep_WaveState(EWaveState OldState);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "GameState")
-	void WaveStateChanged(EWaveState NewState, EWaveState OldState);
+	void WaveStateChanged(EWaveState NewState, EWaveState OldState, int32 CurrentWaveCount);
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_WaveState, Category = "Game State")
 	EWaveState WaveState;
+
+	UPROPERTY(Replicated)
+	int32 WaveCount;
+
+	/* Total accumulated score from all players */
+	UPROPERTY(Replicated)
+	int32 TotalScore;
 
 public:
 
 	ASCoopGameState();
 
-	void SetWaveState(EWaveState NewState);
+	void SetWaveState(EWaveState NewState, int32 NewWaveCount);
+
+	void AddScore(int32 Score);
+
+	UFUNCTION(BlueprintCallable, Category = "Score")
+	int32 GetTotalScore() const;
 	
 };

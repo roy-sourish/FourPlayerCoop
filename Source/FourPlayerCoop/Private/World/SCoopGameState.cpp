@@ -6,14 +6,15 @@
 
 ASCoopGameState::ASCoopGameState()
 {
+	WaveCount = 0;
 }
 
-void ASCoopGameState::SetWaveState(EWaveState NewState)
+void ASCoopGameState::SetWaveState(EWaveState NewState, int32 NewWaveCount)
 {
 	if (HasAuthority())
 	{
 		EWaveState OldState = WaveState;
-
+		WaveCount = NewWaveCount;
 		WaveState = NewState;
 
 		// Call on Server
@@ -21,9 +22,22 @@ void ASCoopGameState::SetWaveState(EWaveState NewState)
 	}
 }
 
+
+void ASCoopGameState::AddScore(int32 Score)
+{
+	TotalScore += Score;
+}
+
+
+int32 ASCoopGameState::GetTotalScore() const
+{
+	return TotalScore;
+}
+
+
 void ASCoopGameState::OnRep_WaveState(EWaveState OldState)
 {
-	WaveStateChanged(WaveState, OldState);
+	WaveStateChanged(WaveState, OldState, WaveCount);
 }
 
 void ASCoopGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -31,4 +45,6 @@ void ASCoopGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ASCoopGameState, WaveState);
+	DOREPLIFETIME(ASCoopGameState, WaveCount);
+	DOREPLIFETIME(ASCoopGameState, TotalScore);
 }

@@ -22,12 +22,16 @@ protected:
 
 	int32 NrOfBotsToSpawn;
 
-	int32 WaveCount;
-
 	/* Time between each wave */
 	UPROPERTY(EditDefaultsOnly, Category = "Wave Spawn Properties")
 	float TimeBetweenWaves;
 
+	/* Spawn the player next to his living coop buddy instead of player start */
+	virtual void RestartPlayer(class AController* NewPlayer) override;
+
+	/* Spawn at team player if any are alive */
+	UPROPERTY(EditDefaultsOnly, Category = "Rules")
+	bool bSpawnAtTeamPlayer;
 
 	/*===================================================================================*/
 	/*===================================================================================*/
@@ -56,14 +60,22 @@ protected:
 
 	void GameOver();
 
-	void SetWaveState(EWaveState NewState);
+	void SetWaveState(EWaveState NewState, int32 NewWaveCount);
 
 public:
 
 	ASCoopGameMode();
 
+	int32 WaveCount;
+
 	virtual void StartPlay() override;
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/* Add score when player kills bots */
+	virtual void Killed(AController* Killer, AController* VictimPlayer, APawn* VictimPawn, const UDamageType* DamageType) override;
+
+
+	UPROPERTY(EditDefaultsOnly, Category = "Scoring")
+	int32 ScoreWaveSurvived;
 };

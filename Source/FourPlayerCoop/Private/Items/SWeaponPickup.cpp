@@ -4,6 +4,7 @@
 #include "Items/SWeaponPickup.h"
 #include "Items/SWeapon.h"
 #include "Player/SCharacter.h"
+#include "Player/SPlayerController.h"
 
 ASWeaponPickup::ASWeaponPickup()
 {
@@ -36,8 +37,12 @@ void ASWeaponPickup::OnUsed(APawn* InstigatorPawn)
 		else
 		{
 			// @TODO: Display HUD Error Message 
-
-			UE_LOG(LogTemp, Error, TEXT("Weapon Slot already taken!"))
+			
+			ASPlayerController* PC = Cast<ASPlayerController>(MyPawn->GetController());
+			if (PC)
+			{
+				PC->ClientHUDMessage(EHUDMessage::Weapon_SlotTaken);
+			}
 		}
 	}
 }
