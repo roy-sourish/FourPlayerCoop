@@ -9,6 +9,11 @@
 #include "NavigationSystem.h"
 #include "EngineUtils.h"
 
+#include "AI/SAdvancedAIController.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
+
 
 ASCoopGameMode::ASCoopGameMode()
 {
@@ -300,6 +305,34 @@ void ASCoopGameMode::GameOver()
 		if (MyController)
 		{
 			MyController->ClientHUDStateChanged(EHUDState::MatchEnd);
+		}
+	}
+	
+	/// <summary>
+	///	**Stop all AI Bots when game is over 
+	/// </summary>
+
+	bool bIsPreparingForNextWave = GetWorldTimerManager().IsTimerActive(TimerHandle_NextWaveStart);
+
+	if (!(NrOfBotsToSpawn > 0 || bIsPreparingForNextWave))
+	{
+		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		{
+			APawn* TestPawn = It->Get();
+			if (TestPawn == nullptr || TestPawn->IsPlayerControlled())
+			{
+				continue;
+			}
+
+			ASAdvancedAI* BotPawn = Cast<ASAdvancedAI>(TestPawn);
+			if (BotPawn && BotPawn->GetHealth() > 0.0f)
+			{
+				ASAdvancedAIController* AIC = Cast<ASAdvancedAIController>(BotPawn->GetController());
+				if (AIC)
+				{
+					AIC->GetBehaviorTreeComp()->StopTree();
+				}
+			}
 		}
 	}
 }
