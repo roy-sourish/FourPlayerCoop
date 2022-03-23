@@ -1,2 +1,2 @@
 # FourPlayerCoop
- 4-Player Coop Horde Mode Game based on @tomlooman EpicSurvivalGame
+ 4-Player Co-op Horde Mode Game 
